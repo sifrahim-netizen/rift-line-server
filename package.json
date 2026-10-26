@@ -1,0 +1,16 @@
+{
+  "name": "riftline-multiplayer-server",
+  "version": "1.0.0",
+  "description": "Server-authoritative online multiplayer server for the Riftline browser FPS (1v1, 2v2, 3v3, private lobbies, matchmaking).",
+  "type": "module",
+  "main": "src/server.js",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test --test-concurrency=1 test/*.test.js"
+  },
+  "license": "UNLICENSED"
+}
