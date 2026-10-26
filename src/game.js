@@ -275,9 +275,13 @@ export class Room {
     seat.loaded = true;
     this.dirty = true;
     if (this.phase === 'loading') {
-      const pending = [...this.seats.values()].filter((s) => !s.loaded && s.connected);
+      // wait for everyone, including players who are reloading the page to switch maps
+      // (they are briefly disconnected); LOAD_MAX is the safety timeout
+      const pending = [...this.seats.values()].filter((s) => !s.loaded);
       if (!pending.length) this.startRound();
     } else if (this.inMatch) {
+      // arrived late but the round has not gone live yet: spawn them normally
+      if (this.phase === 'buy' && !seat.alive && seat.spawn) this.spawnSeat(seat);
       this.sendState(seat);
     }
     return null;
@@ -295,18 +299,22 @@ export class Room {
       s.spawn = { x: sp[0], z: sp[1], y: map.height(sp[0], sp[1]), yaw: map.yaw[team] };
       s.reloadEnd = 0; s.reloadW = null; s.lastCt = null; s.shotLog = []; s.meleeNext = 0; s.drawEnd = 0;
       if (!s.loaded) { s.alive = false; continue; }
-      if (!s.keepPrim) s.prim = null;
-      s.keepPrim = false;
-      s.alive = true; s.hp = 100; s.ar = 100; s.frozen = true;
-      s.x = s.spawn.x; s.y = s.spawn.y; s.z = s.spawn.z; s.yaw = s.spawn.yaw; s.pitch = -0.03; s.flags = 1; s.anim = 0;
-      s.hist = [[now(), s.x, s.y, s.z]]; s.lastPosT = now();
-      s.inv = { deagle: { a: WEAPONS.deagle.mag, r: WEAPONS.deagle.res } };
-      if (s.prim) s.inv[s.prim] = { a: WEAPONS[s.prim].mag, r: WEAPONS[s.prim].res };
-      s.w = s.prim || 'deagle';
+      this.spawnSeat(s);
     }
     this.setPhase('buy', T.BUY);
     for (const s of this.seats.values()) this.sendState(s);
     this.broadcast({ t: 'round', n: this.round, score: this.score });
+  }
+
+  spawnSeat(s) {
+    if (!s.keepPrim) s.prim = null;
+    s.keepPrim = false;
+    s.alive = true; s.hp = 100; s.ar = 100; s.frozen = true;
+    s.x = s.spawn.x; s.y = s.spawn.y; s.z = s.spawn.z; s.yaw = s.spawn.yaw; s.pitch = -0.03; s.flags = 1; s.anim = 0;
+    s.hist = [[now(), s.x, s.y, s.z]]; s.lastPosT = now();
+    s.inv = { deagle: { a: WEAPONS.deagle.mag, r: WEAPONS.deagle.res } };
+    if (s.prim) s.inv[s.prim] = { a: WEAPONS[s.prim].mag, r: WEAPONS[s.prim].res };
+    s.w = s.prim || 'deagle';
   }
 
   sendState(s) {
